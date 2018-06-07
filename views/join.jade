@@ -1,0 +1,30 @@
+doctype html
+html(lang="ko")
+  head
+    title=title
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    script(src="//code.jquery.com/jquery-3.3.1.min.js", integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=", crossorigin="anonymous")
+  body
+    form#joinForm(name="joinForm")
+      div
+        label(for="partnerId") 로그인 아이디:
+        input#id(type="text", name="partnerId", required="true")
+      div
+        label(for="passwd") 비밀번호:
+        input#password(type="password", name="passwd", required="true")
+      div
+        label(for="passwdchk") 비밀번호 확인:
+        input#passwordchk(type="password", name="passwdchk", required="true")  
+      div
+        label(for="partnerName") 제휴사명:
+        input#name(type="partnerName", name="partnerName", required="true")
+      button 등록
+
+    script.
+      // 신규등록
+      $("#joinForm").submit(function(evt) {
+        evt.preventDefault();
+        $.post('join', $(this).serializeArray(), function(ret) {
+          console.log(ret);
+        });
+      });
