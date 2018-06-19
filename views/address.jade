@@ -1,0 +1,73 @@
+extends layout/default_layout
+
+block body
+  h1=title
+    span.sub #{address}
+    
+  div#addressInfo
+  
+  script.
+    var address = '#{address}';
+
+    function getBalance(address) {
+      return new Promise((res, rej) => {
+        web3.eth.getBalance(address, (error, result) => {
+          if(error) rej(error);
+          else res(result.toString(10));
+        });
+      });
+    }
+
+    function getStorageAt(address) {
+      return new Promise((res, rej) => {
+        web3.eth.getStorageAt(address, (error, result) => {
+          if(error) rej(error);
+          else res(result);
+        });
+      });
+    }
+
+    function getCode(address) {
+      return new Promise((res, rej) => {
+        web3.eth.getCode(address, (error, result) => {
+          if(error) rej(error);
+          else res(result);
+        });
+      });
+    }
+
+    function getTransactionCount(address) {
+      return new Promise((res, rej) => {
+        web3.eth.getTransactionCount(address, (error, result) => {
+          if(error) rej(error);
+          else res(result);
+        });
+      });
+    }
+
+    async function getAddressInfo(address) {
+
+      var balance = await getBalance(address);
+      var storage = await getStorageAt(address);
+      var code = await getCode(address);
+      var transactionCount = await getTransactionCount(address);
+      //- console.log('code: ', code);
+
+      var html = '<table>'
+        + '<tr><th>Balance:</th><td>' + balance +  ' Wei (' +  web3.fromWei(balance, 'ether') + ' Ether)</td></tr>'
+        + '<tr><th>Storage:</th><td>' + storage + '</td></tr>'
+        + '<tr><th>Transaction Count:</th><td>' + transactionCount + '</td></tr>'
+        + (code==='0x'?'':'<tr><th>Code:</th><td><textarea disabled readonly rows="25">' + code + '</textarea></td></tr>')
+        + '</table>';
+      $("#addressInfo").html(html);
+      //- console.log('result: ', balance, storage, code);
+    }
+
+    getAddressInfo(address);
+
+    
+    
+    
+
+    
+    

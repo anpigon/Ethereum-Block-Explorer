@@ -4,6 +4,7 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var bodyParser = require('body-parser');
+var InputDataDecoder = require('ethereum-input-data-decoder');
 
 var app = express();
 
@@ -18,10 +19,40 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 
-var indexRouter = require('./app/routes/index');
-var usersRouter = require('./app/routes/users');
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.get('/', function (req, res, next) {
+  res.render('index', {
+    title: 'The Ethereum Block Explorer'
+  });
+});
+
+app.get('/block/:number/', function (req, res, next) {
+  var number = req.params['number'];
+  res.render('block', {
+    title: 'Block',
+    number: number
+  });
+});
+
+app.get('/tx/:hash/', function (req, res, next) {
+  var hash = req.params['hash'];
+  res.render('transaction', {
+    title: 'Transaction',
+    hash: hash
+  });
+});
+
+app.get('/address/:address/', function (req, res, next) {
+  var address = req.params['address'];
+  res.render('address', {
+    title: 'Address',
+    address: address
+  });
+});
+
+app.post('/decoder', function (req, res, next) {
+  // req.body.data
+  res.json({});
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -38,10 +69,5 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
-
-// Servie 초기화
-var Service = require('./app/service');
-var config = require('./config');
-Service.initialize(config, function(){});
 
 module.exports = app;

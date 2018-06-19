@@ -34,6 +34,3 @@ db/*
 multilevel/db/*
 
 .idea
-
-.gitgnore
-package-lock.json

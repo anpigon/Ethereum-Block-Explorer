@@ -1,0 +1,35 @@
+doctype html
+html(lang="ko")
+  head
+    title=title
+    meta(charset="utf-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no")
+    //link(rel='stylesheet', href='/stylesheets/style.css')
+    script(src="//code.jquery.com/jquery-3.3.1.min.js", integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=", crossorigin="anonymous")
+    script(src="//cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js")
+    style.
+      *{font-family:'Bitstream Vera Sans Mono','나눔고딕코딩','나눔고딕','맑은 고딕','돋움','monospace'}
+      h1,h2,h3,h4.h5,h6{font-family: monospace,Arial,sans-serif;}
+      table{border-collapse:collapse;}
+      td,th{font-size:14px;padding:5px 10px;border:1px solid #efefef;text-align:left;vertical-align:top;}
+      textarea {resize: none;width:100%}
+      .sub{padding-left:10px;font-size:16px;color:#999999;font-weight:normal}
+      .searchBox input, .searchBox button { height:30px }
+      .searchBox input {width:80%}
+    script.
+      var web3;
+      if (typeof web3 !== 'undefined') {
+        web3 = new Web3(web3.currentProvider);
+      } else {
+        // set the provider you want from Web3.providers
+        web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+      }
+
+      web3.eth.getGasPrice(function(error, result){
+        console.log('GasPrice: ', result.toString());
+      });
+      
+
+      
+  body
+    block body

@@ -1,5 +1,47 @@
-extends layout
+extends layout/default_layout
 
-block content
+block body
   h1= title
-  p Welcome to #{title}
+    
+  form.searchBox(id="searchForm")
+    input(type="search", name="search", placeholder="Search for Account, Tx Hash or Data", required, autofocus)
+    button 검색
+  
+  br
+  div#info
+
+  script.
+
+    var blockNumber;
+    web3.eth.getBlockNumber((error, result) => {
+      blockNumber = result;
+
+      var html = '<table>'
+        + '<tr><th>Latest Block</th><td><a href="/block/'+blockNumber+'">'+blockNumber+'</a></td></tr>'
+        + '</table>';
+      $("#info").html(html);
+    });
+
+    $('#searchForm').submit(function(evt) {
+      evt.preventDefault();
+      var search = evt.target.search.value;
+      console.log(search, ", ", search.length);
+
+      var length = search.length;
+
+      if( length === 66 ) { //tx hash
+        location.href = '/tx/' + search;
+      } else if( length === 42 && web3.isAddress(search) ) {
+        location.href = '/address/' + search;
+      } else if( search <= blockNumber ) {
+        location.href = '/block/' + search;
+      } else {
+        console.log('what?');
+      }      
+      
+    });
+    
+    
+
+    
+    
