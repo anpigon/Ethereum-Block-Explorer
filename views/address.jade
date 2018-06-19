@@ -45,16 +45,30 @@ block body
       });
     }
 
+
+    function getETHUSD(balance) {
+      return new Promise((res, rej) => {
+        $.getJSON("https://api.coinmarketcap.com/v1/ticker/ethereum/", function(json) {
+          var price = Number(json[0].price_usd);
+          var ethusd = price.toFixed(2);
+          var balanceusd = "$" + (ethusd * balance);
+          res(balanceusd);
+        });
+      });
+    }
+
     async function getAddressInfo(address) {
 
       var balance = await getBalance(address);
       var storage = await getStorageAt(address);
       var code = await getCode(address);
       var transactionCount = await getTransactionCount(address);
+      var balanceusd = await getETHUSD(web3.fromWei(balance, 'ether'));
       //- console.log('code: ', code);
 
       var html = '<table>'
-        + '<tr><th>Balance:</th><td>' + balance +  ' Wei (' +  web3.fromWei(balance, 'ether') + ' Ether)</td></tr>'
+        + '<tr><th>Balance:</th><td>' + balance.toString(10) +  ' Wei (' +  web3.fromWei(balance, 'ether').toString(10) + ' Ether)</td></tr>'
+        + '<tr><th>Balance(USD):</th><td>' + balanceusd + '</td></tr>'
         + '<tr><th>Storage:</th><td>' + storage + '</td></tr>'
         + '<tr><th>Transaction Count:</th><td>' + transactionCount + '</td></tr>'
         + (code==='0x'?'':'<tr><th>Code:</th><td><textarea disabled readonly rows="25">' + code + '</textarea></td></tr>')

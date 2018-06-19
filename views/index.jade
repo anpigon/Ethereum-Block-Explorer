@@ -8,18 +8,83 @@ block body
     button 검색
   
   br
-  div#info
+  div#app
+    h4 Latest Block: 
+      a(v-bind:href="'/block/' + blockNumber") {{ blockNumber }}
+
+    table(width='100%')
+      tr
+        th Block #
+        th # of Txs
+        th Size
+        th Timestamp
+      tr(v-for="block in blocks", v-if="blocks.length")
+        td       
+          a(v-bind:href="'/block/' + block.number.toString(10)") {{ block.number.toString(10) }}
+        td {{ block.transactions.length }}
+        td {{ block.size }} bytes
+        td {{ new Date(block.timestamp * 1000).toGMTString() }}
+
 
   script.
 
-    var blockNumber;
-    web3.eth.getBlockNumber((error, result) => {
-      blockNumber = result;
+    function getBlockNumber() {
+      return new Promise((res, rej) => {
+        web3.eth.getBlockNumber((error, result) => {
+          if(error) rej(error);
+          else res(result);
+        });
+      });
+    }
 
-      var html = '<table>'
-        + '<tr><th>Latest Block</th><td><a href="/block/'+blockNumber+'">'+blockNumber+'</a></td></tr>'
-        + '</table>';
-      $("#info").html(html);
+    function getBlock(hashStringOrBlockNumber) {
+      return new Promise((res, rej) => {
+        web3.eth.getBlock(hashStringOrBlockNumber, (error, result) => {
+          if(error) rej(error);
+          else res(result);
+        });
+      });
+    }
+
+    function updateTXList() {
+        var currentTXnumber = web3.eth.blockNumber;
+        $scope.txNumber = currentTXnumber;
+        $scope.recenttransactions = [];
+        for (var i=0; i < 10 && currentTXnumber - i >= 0; i++) {
+          $scope.recenttransactions.push(web3.eth.getTransactionFromBlock(currentTXnumber - i));
+        }
+    }
+
+    async function getBlockList(currentBlockNumber, maxCnt) {
+      var blocks = [];
+      for (var i=0, s=(maxCnt || 10); i < s && currentBlockNumber - i >= 0; i++) {
+        blocks.push(await getBlock(currentBlockNumber - i));
+      }
+      return blocks;
+    }
+
+    var app = new Vue({
+      el: '#app',
+      data: { 
+        blockNumber: '',
+        blocks: []
+      }
+    });
+
+    (async function init() {
+      console.log('update');
+      var blockNumber = await getBlockNumber();
+      app.$data.blockNumber = blockNumber;
+
+      app.$data.blocks = await getBlockList(blockNumber);
+      console.log(app.$data.blocks);
+
+    })();
+
+    web3.eth.filter("latest", function(error, result){
+      if (!error) {
+        console.log(result);
+      }
     });
 
     $('#searchForm').submit(function(evt) {
@@ -27,11 +92,17 @@ block body
       var search = evt.target.search.value;
       console.log(search, ", ", search.length);
 
-      var length = search.length;
 
-      if( length === 66 ) { //tx hash
+      //- search = search.split('0x').join('');
+      //- var regexpTx = /[0-9a-zA-Z]{64}?/;
+      //- //var regexpAddr =  /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}/; // TODO ADDR REGEX or use isAddress(hexString) API ?
+      //- var regexpAddr = /^(0x)?[0-9a-f]{40}$/; //New ETH Regular Expression for Addresses
+      //- var regexpBlock = /[0-9]{1,7}?/;
+      //- var result =regexpTx.test(search);
+
+      if( search.length === 66 ) { //tx hash
         location.href = '/tx/' + search;
-      } else if( length === 42 && web3.isAddress(search) ) {
+      } else if( search.length === 42 && web3.isAddress(search) ) {
         location.href = '/address/' + search;
       } else if( search <= blockNumber ) {
         location.href = '/block/' + search;

@@ -33,19 +33,22 @@ block body
       var tx = await getTransaction(hash);
       console.log(tx);
 
+      //var txprice = (tx.gas * tx.gasPrice)/1000000000000000000 + " ETH";
+
       var html = '<table>'
         + '<tr><th>TxHash:</th><td>' + tx.hash + '</td></tr>'
         + '<tr><th title="이전에 보낸사람이 수행한 트랜잭션 갯수">Nonce:</th><td>' + tx.nonce + '</td></tr>'
         + '<tr><th>STxReceipt Status:</th><td>' + (tx.transactionIndex===undefined?'Pending':'Success') + '</td></tr>'
-        + '<tr><th>Block Height:</th><td><a href="/block/' + tx.blockNumber + '">' + tx.blockNumber + '</a></td></tr>'
-        + '<tr><th>Block Hash:</th><td>' + tx.blockHash + '</td></tr>'
+        + '<tr><th>Block Height:</th><td>' + (tx.blockNumber===undefined?'pending':'<a href="/block/' + tx.blockNumber + '">' + tx.blockNumber + '</a>') + '</td></tr>'
+        + '<tr><th>Block Hash:</th><td>' + (tx.blockHash || 'pending') + '</td></tr>'
         + '<tr><th title="블록에 있는 트랜잭션 인덱스. null이면 pending 상태">Transaction Index:</th><td>' + tx.transactionIndex + '</td></tr>'
         //+ '<tr><th>TimeStamp:</th><td>' + tx.blockHash + '</td></tr>'
         + '<tr><th>From:</th><td><a href="/address/' + tx.from + '">' + tx.from + '</a></td></tr>'
         + '<tr><th>To:</th><td>' + (tx.to==='0x0'?tx.to:'<a href="/address/' + tx.to + '">' + tx.to + '</a>') + '</td></tr>'
-        + '<tr><th>Value:</th><td>' + tx.value.toString(10) +  ' Wei (' +  web3.fromWei(tx.value, 'ether').toString(10) + ' Ether)</td></tr>'
-        + '<tr><th>Gas Limit:</th><td>' + tx.gas + '</td></tr>'
-        + '<tr><th>Gas Price:</th><td>' + tx.gasPrice.toString(10) +  ' Wei (' +  web3.fromWei(tx.gasPrice, 'Gwei').toString(10) + ' Gwei)</td></tr>'
+        + '<tr><th>Value:</th><td>' + tx.value.toString(10) +  ' ' +  web3.fromWei(tx.value, 'ether').toString(10) + ' ETH)</td></tr>'
+        + '<tr><th>Gas Limit:</th><td>' + tx.gas.toString(10) + '</td></tr>'
+        + '<tr><th>Gas Price:</th><td>' + tx.gasPrice.toString(10) +  ' (' +  web3.fromWei(tx.gasPrice, 'Gwei').toString(10) + ' Gwei)</td></tr>'
+        + '<tr><th>Transaction Price:</th><td>' + web3.fromWei(tx.gas * tx.gasPrice, 'ether').toString(10) + ' ETH</td></tr>'
         + '<tr><th>Input Data:</th><td><textarea disabled readonly>' + tx.input + '</textarea></td></tr>'
         + '</table>'; // 
 
@@ -61,11 +64,32 @@ block body
          + '<tr><th>cumulativeGasUsed:</th><td>' + txReceipt.cumulativeGasUsed + '</td></tr>'
          + '<tr><th>gasUsed:</th><td>' + txReceipt.gasUsed + '</td></tr>'
          + '<tr><th>status:</th><td>' + txReceipt.status + '</td></tr>'
-         + '<tr><th>logsBloom:</th><td>' + txReceipt.logsBloom + '</td></tr>'
-         + '<tr><th>logs:</th><td>' + txReceipt.logs + '</td></tr>'
+         + '<tr><th>logsBloom:</th><td><textarea disabled readonly>' + txReceipt.logsBloom + '</textarea></td></tr>'
+        //-  + '<tr><th>logs:</th><td>' + txReceipt.logs + '</td></tr>'
         //-  + '<tr><th>transactionHash:</th><td>' + txReceipt.transactionHash + '</td></tr>'
         //-  + '<tr><th>transactionIndex:</th><td>' + txReceipt.transactionIndex + '</td></tr>'
           + '</table>';
+
+        var logs = ['<h2>Logs</h2>','<table>'];
+        var header = '<tr><th>logIndex</th><!--th>address</th><th>blockNumber</th><th>blockHash</th--><th>data</th><th>removed</th><th>topics</th><!--th>transactionHash</th><th>transactionIndex</th--></tr>';
+        logs.push(header);
+        txReceipt.logs.forEach(function(e, i) {
+          console.log(e);
+          var temp = '<tr>'
+            +'<td>'+e.logIndex+'</td>'
+            //- +'<td>'+e.address+'</td>'
+            //- +'<td>'+e.blockNumber.toString(10)+'</td>'
+            //- +'<td>'+e.blockHash+'</td>'
+            +'<td>'+e.data+'</td>'
+            +'<td>'+e.removed+'</td>'
+            +'<td>'+e.topics.join('<br>')+'</td>'
+            //- +'<td>'+e.transactionHash+'</td>'
+            //- +'<td>'+e.transactionIndex+'</td>'
+            + '</tr>';
+          logs.push(temp);
+        });
+        logs.push('</table>')
+        html += logs.join('');
       }
 
       $("#txInfo").html(html);

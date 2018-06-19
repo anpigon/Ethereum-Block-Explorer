@@ -13,54 +13,100 @@ block body
       console.log('not connected!');
     }
 
-    // web3.eth.getBlockTransactionCount(hashStringOrBlockNumber [, callback])
-    // web3.eth.getUncle(blockHashStringOrNumber, uncleNumber [, returnTransactionObjects] [, callback])
-
-    function getBlockInfo(number) {
-      //- await web3.eth.getBlockNumber(function(error, result){
-      //-   console.log('BlockNumber: ', result);
-      //- });
-      web3.eth.getBlock(number, function(error, result) { //or "latest"
-        console.log(error, result);
-
-        var html = '<table>'
-        + '<tr><td>Height:</td><td>' + result.number + '</td></tr>'
-        + '<tr><td>TimeStamp</td><td>' + result.timestamp + '</td></tr>'
-        //+ '<tr><td>Transactions</td><td>' + result.transactions + '</td></tr>'
-        + '<tr><td>Hash</td><td>' + result.hash + '</td></tr>'
-        + '<tr><td>Parent Hash</td><td>' + result.parentHash + '</td></tr>'
-        + '<tr><td>Sha3Uncles</td><td>' + result.sha3Uncles + '</td></tr>'
-        + '<tr><td>Mined By</td><td><a href="/address/' + result.miner + '">' + result.miner + '<a></td></tr>'
-        + '<tr><td>Difficulty</td><td>' + result.difficulty + '</td></tr>'
-        + '<tr><td>Total Difficulty</td><td>' + result.totalDifficulty + '</td></tr>'
-        + '<tr><td>Size</td><td>' + result.size + ' bytes</td></tr>'
-        + '<tr><td>Gas Used</td><td>' + result.gasUsed + '</td></tr>'
-        + '<tr><td>Gas Limit</td><td>' + result.gasLimit + '</td></tr>'
-        + '<tr><td>Nonce</td><td>' + result.nonce + '</td></tr>'
-        + '<tr><td>Extra Data</td><td>' + result.extraData + '</td></tr>'
-        + '<tr><td>logsBloom</td><td>' + result.logsBloom + '</td></tr>'
-        + '<tr><td>mixHash</td><td>' + result.mixHash + '</td></tr>'
-        + '<tr><td>receiptsRoot</td><td>' + result.receiptsRoot + '</td></tr>'
-        + '<tr><td>stateRoot</td><td>' + result.stateRoot + '</td></tr>'
-        + '<tr><td>transactionsRoot</td><td>' + result.transactionsRoot + '</td></tr>'
-        + '<tr><td>uncles</td><td>' + result.uncles + '</td></tr>'
-        + '</table>';
-
-        var txs = ['<h2>Transactions </h2>','<table>'];
-        result.transactions.forEach(function(tx, i) {
-          //console.log(tx);
-          txs.push('<tr><td><a href="/tx/' + tx + '">' + tx + '</a></td></tr>')
+    function getBlockNumber() {
+      return new Promise((res, rej) => {
+        web3.eth.getBlockNumber((error, result) => {
+          if(error) rej(error);
+          else res(result);
         });
-        txs.push('</table>');
-        html += txs.join('');
-        
-        $("#blockInfo").html(html);
-
-
-
-
       });
+    }
 
+    function getBlock(hashStringOrBlockNumber) {
+      return new Promise((res, rej) => {
+        web3.eth.getBlock(hashStringOrBlockNumber, (error, result) => {
+          if(error) rej(error);
+          else res(result);
+        });
+      });
+    }
+
+    function getBlockTransactionCount(hashStringOrBlockNumber) {
+      return new Promise((res, rej) => {
+        web3.eth.getBlockTransactionCount(hashStringOrBlockNumber, (error, result) => {
+          if(error) rej(error);
+          else res(result);
+        });
+      });
+    }
+
+    async function getBlockInfo(number) {
+
+      var latestBlockNumber = await getBlockNumber();
+
+      var result = await getBlock(number); //or "latest"
+      console.log(result);
+
+      var html = '<table>'
+      + '<tr><td>Height:</td><td>' + result.number.toString(10) + '</td></tr>'
+      + '<tr><td>TimeStamp</td><td>' + new Date(result.timestamp * 1000).toGMTString() + '</td></tr>'
+      //+ '<tr><td>Transactions</td><td>' + result.transactions + '</td></tr>'
+      + '<tr><td>Hash</td><td>' + (result.hash || 'pending') + '</td></tr>'
+      + '<tr><td>Parent Hash</td><td>' + result.parentHash + '</td></tr>'
+      + '<tr><td>Sha3Uncles</td><td>' + result.sha3Uncles + '</td></tr>'
+      + '<tr><td>Mined By</td><td>' + (!result.miner?'pending':'<a href="/address/' + result.miner + '">' + result.miner + '<a>') + '</td></tr>'
+      + '<tr><td>Difficulty</td><td>' + result.difficulty.toString(10) + '</td></tr>'
+      + '<tr><td>Total Difficulty</td><td>' + result.totalDifficulty.toString(10) + '</td></tr>'
+      + '<tr><td>Size</td><td>' + result.size + ' bytes</td></tr>'
+      + '<tr><td>Gas Used</td><td>' + result.gasUsed + '</td></tr>'
+      + '<tr><td>Gas Limit</td><td>' + result.gasLimit + '</td></tr>'
+      + '<tr><td>Nonce</td><td>' + result.nonce + '</td></tr>'
+      + '<tr><td>Extra Data</td><td>' + result.extraData + '</td></tr>'
+      + '<tr><td>Extra Data (Translated)</td><td>' + hex2a(result.extraData) + '</td></tr>'
+      + '<tr><td>logsBloom</td><td>' + result.logsBloom + '</td></tr>'
+      + '<tr><td>mixHash</td><td>' + result.mixHash + '</td></tr>'
+      + '<tr><td>receiptsRoot</td><td>' + result.receiptsRoot + '</td></tr>'
+      + '<tr><td>stateRoot</td><td>' + result.stateRoot + '</td></tr>'
+      + '<tr><td>transactionsRoot</td><td>' + result.transactionsRoot + '</td></tr>'
+      + '<tr><td>uncles</td><td>' + result.uncles + '</td></tr>'
+      + '</table>';
+
+      var confirm = (latestBlockNumber - result.number) + " Confirmations";
+      var lastBlock = false;
+      if (result.number === 0 || result.number === latestBlockNumber){
+        confirm = 'Unconfirmed';
+        lastBlock = true;
+      }
+      console.log(confirm);
+      
+
+
+      var txs = ['<h2>Transactions </h2>','<table>'];
+      result.transactions.forEach(function(tx, i) {
+        //console.log(tx);
+        txs.push('<tr><td><a href="/tx/' + tx + '">' + tx + '</a></td></tr>')
+      });
+      txs.push('</table>');
+      html += txs.join('');
+
+      var blockTransactionCount = await getBlockTransactionCount(result.number);
+      console.log('blockTransactionCount: ', blockTransactionCount);
+
+      // web3.eth.getTransactionFromBlock(hashStringOrBlockNumber [, callback])
+      // web3.eth.getUncle(blockHashStringOrNumber, uncleNumber [, returnTransactionObjects] [, callback])
+      
+      $("#blockInfo").html(html);
+
+
+    }
+
+    function hex2a(hexx) {
+        var hex = hexx.toString(); //force conversion
+        var str = '';
+        for (var i = 0; i < hex.length; i += 2)
+            str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+
+        return str;
     }
 
     getBlockInfo(number);

@@ -34,3 +34,8 @@ db/*
 multilevel/db/*
 
 .idea
+
+package-lock.json
+yarn.lock
+.gitignore
+.eslintrc.js
