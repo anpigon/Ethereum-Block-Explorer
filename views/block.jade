@@ -1,17 +1,111 @@
 extends layout/default_layout
 
-block body
+block contents
   h1=title
-    span.sub ##{number}
+    span.text-muted.ml-2 ##{number}
 
-  div#blockInfo
-  
+  div#app(v-cloak)
+
+    //- ========================
+    //- Block
+    //- ========================
+    table.table.table-striped
+      tr
+        td.w-25 Height
+        td {{ block.number }}
+      tr
+        td TimeStamp
+        td {{ new Date(block.timestamp * 1000).toGMTString() }}
+      tr
+        td Transactions
+        td {{ block.transactions.length }} transactions
+      tr
+        td Hash
+        td {{ (block.hash || 'pending') }}
+      tr
+        td Parent Hash
+        td {{ block.parentHash }}
+      tr
+        td Sha3Uncles
+        td {{ block.sha3Uncles }}
+      tr
+        td Mined By
+        td
+          span(v-if="block.miner === undefined") pending
+          a(v-if="block.miner !== undefined", v-bind:href="'/address/' +  block.miner") {{  block.miner }}
+      tr
+        td Difficulty
+        td {{ block.difficulty }}
+      tr
+        td Total Difficulty
+        td {{ block.totalDifficulty }}
+      tr
+        td Size
+        td {{ block.size }} bytes
+      tr
+        td Gas Used
+        td {{ block.gasUsed }}
+      tr
+        td Gas Limit
+        td {{ block.gasLimit }}
+      tr
+        td Nonce
+        td {{ block.nonce }}
+      tr
+        td Extra Data
+        td {{ block.extraData }}
+      tr
+        td Extra Data (Translated)
+        td {{ web3.toAscii(block.extraData) }}
+      tr
+        td logsBloom
+        td
+          textarea(disabled, readonly, rows="3") {{ block.logsBloom }}
+      tr
+        td mixHash
+        td {{ block.mixHash }}
+      tr
+        td receiptsRoot
+        td {{ block.receiptsRoot }}
+      tr
+        td stateRoot
+        td {{ block.stateRoot }}
+      tr
+        td transactionsRoot
+        td {{ block.transactionsRoot }}
+      tr
+        td uncles
+        td {{ block.uncles }}
+
+    //- ========================
+    //- Transactions
+    //- ========================
+    h2 Transactions
+    table.table.table-striped.w-100
+      tr 
+        th Transaction Hash
+      tr(v-for="tx in block.transactions", v-if="block.transactions")
+        td
+          a(v-bind:href="'/tx/' +tx") {{ tx }}
+
   script.
-    var number = #{number};
-
-    if(!web3.isConnected()) {
-      console.log('not connected!');
-    }
+    var app = new Vue({
+      el: '#app',
+      data: {
+        number:  #{number},
+        confirmations: null,
+        block: {
+          number:null,
+          timestamp:null,
+          transactions: [],
+          extraData: "",
+          size: 0
+        }
+      },
+      created: function() {
+        getBlockInfo(this.number);
+      }
+    });
 
     function getBlockNumber() {
       return new Promise((res, rej) => {
@@ -44,74 +138,24 @@ block body
 
       var latestBlockNumber = await getBlockNumber();
 
-      var result = await getBlock(number); //or "latest"
-      console.log(result);
+      var block = await getBlock(number); //or "latest"
+      block.difficulty = block.difficulty.toString(10);
+      block.totalDifficulty = block.totalDifficulty.toString(10);
+      app.block  = block; 
 
-      var html = '<table>'
-      + '<tr><td>Height:</td><td>' + result.number.toString(10) + '</td></tr>'
-      + '<tr><td>TimeStamp</td><td>' + new Date(result.timestamp * 1000).toGMTString() + '</td></tr>'
-      //+ '<tr><td>Transactions</td><td>' + result.transactions + '</td></tr>'
-      + '<tr><td>Hash</td><td>' + (result.hash || 'pending') + '</td></tr>'
-      + '<tr><td>Parent Hash</td><td>' + result.parentHash + '</td></tr>'
-      + '<tr><td>Sha3Uncles</td><td>' + result.sha3Uncles + '</td></tr>'
-      + '<tr><td>Mined By</td><td>' + (!result.miner?'pending':'<a href="/address/' + result.miner + '">' + result.miner + '<a>') + '</td></tr>'
-      + '<tr><td>Difficulty</td><td>' + result.difficulty.toString(10) + '</td></tr>'
-      + '<tr><td>Total Difficulty</td><td>' + result.totalDifficulty.toString(10) + '</td></tr>'
-      + '<tr><td>Size</td><td>' + result.size + ' bytes</td></tr>'
-      + '<tr><td>Gas Used</td><td>' + result.gasUsed + '</td></tr>'
-      + '<tr><td>Gas Limit</td><td>' + result.gasLimit + '</td></tr>'
-      + '<tr><td>Nonce</td><td>' + result.nonce + '</td></tr>'
-      + '<tr><td>Extra Data</td><td>' + result.extraData + '</td></tr>'
-      + '<tr><td>Extra Data (Translated)</td><td>' + hex2a(result.extraData) + '</td></tr>'
-      + '<tr><td>logsBloom</td><td>' + result.logsBloom + '</td></tr>'
-      + '<tr><td>mixHash</td><td>' + result.mixHash + '</td></tr>'
-      + '<tr><td>receiptsRoot</td><td>' + result.receiptsRoot + '</td></tr>'
-      + '<tr><td>stateRoot</td><td>' + result.stateRoot + '</td></tr>'
-      + '<tr><td>transactionsRoot</td><td>' + result.transactionsRoot + '</td></tr>'
-      + '<tr><td>uncles</td><td>' + result.uncles + '</td></tr>'
-      + '</table>';
-
-      var confirm = (latestBlockNumber - result.number) + " Confirmations";
-      var lastBlock = false;
-      if (result.number === 0 || result.number === latestBlockNumber){
-        confirm = 'Unconfirmed';
-        lastBlock = true;
+      var blockNumber  = block.number;
+      var confirm;
+      if( blockNumber ) {
+        var latestBlockNumber = await getBlockNumber();
+        if( blockNumber !== 0 && blockNumber !== latestBlockNumber ) 
+          confirm = (latestBlockNumber - blockNumber) + " Confirmations";
       }
-      console.log(confirm);
-      
+      app.confirmations = confirm || 'Unconfirmed';
 
-
-      var txs = ['<h2>Transactions </h2>','<table>'];
-      result.transactions.forEach(function(tx, i) {
-        //console.log(tx);
-        txs.push('<tr><td><a href="/tx/' + tx + '">' + tx + '</a></td></tr>')
-      });
-      txs.push('</table>');
-      html += txs.join('');
-
-      var blockTransactionCount = await getBlockTransactionCount(result.number);
-      console.log('blockTransactionCount: ', blockTransactionCount);
+      //- var blockTransactionCount = await getBlockTransactionCount(result.number);
+      //- console.log('blockTransactionCount: ', blockTransactionCount);
 
       // web3.eth.getTransactionFromBlock(hashStringOrBlockNumber [, callback])
       // web3.eth.getUncle(blockHashStringOrNumber, uncleNumber [, returnTransactionObjects] [, callback])
-      
-      $("#blockInfo").html(html);
-
 
     }
-
-    function hex2a(hexx) {
-        var hex = hexx.toString(); //force conversion
-        var str = '';
-        for (var i = 0; i < hex.length; i += 2)
-            str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
-
-        return str;
-    }
-
-    getBlockInfo(number);
-    
-    
-
-    
-    

@@ -4,25 +4,20 @@ html(lang="ko")
     title=title
     meta(charset="utf-8")
     meta(name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no")
-    //link(rel='stylesheet', href='/stylesheets/style.css')
+    
+    link(rel='stylesheet', href="//stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css", integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB", crossorigin="anonymous")
+    link(rel='stylesheet', href="//use.fontawesome.com/releases/v5.0.13/css/all.css", integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp", crossorigin="anonymous")
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    
     script(src="//code.jquery.com/jquery-3.3.1.min.js", integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=", crossorigin="anonymous")
     script(src="//cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js")
     script(src="//cdn.jsdelivr.net/npm/vue")
-    style.
-      *{font-family:'Bitstream Vera Sans Mono','나눔고딕코딩','나눔고딕','맑은 고딕','돋움','monospace'}
-      h1,h2,h3,h4.h5,h6{font-family: monospace,Arial,sans-serif;}
-      table{border-collapse:collapse;}
-      td,th{font-size:14px;padding:5px 10px;border:1px solid #efefef;text-align:left;vertical-align:top;}
-      textarea {resize: none;width:100%}
-      .sub{padding-left:10px;font-size:16px;color:#999999;font-weight:normal}
-      .searchBox input, .searchBox button { height:30px }
-      .searchBox input {width:80%}
+
     script.
       var web3;
       if (typeof web3 !== 'undefined') {
         web3 = new Web3(web3.currentProvider);
       } else {
-        // set the provider you want from Web3.providers
         web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
       }
 
@@ -30,7 +25,50 @@ html(lang="ko")
       //-   console.log('GasPrice: ', result.toString());
       //- });
       
-
-      
   body
-    block body
+    nav.navbar.navbar-expand-md.navbar-dark.bg-dark.fixed-top
+      a.navbar-brand.text-uppercase(href="/") Ether Expolorer
+      button.navbar-toggler(type="button", data-toggle="collapse", data-target="#navbarsExampleDefault", aria-controls="navbarsExampleDefault", aria-expanded="false", aria-label="Toggle navigation") 
+        span.navbar-toggler-icon
+
+      div.collapse.navbar-collapse#navbarsExampleDefault
+        ul.navbar-nav.mr-auto
+          li.nav-item.active
+            a.nav-link(href="/") Home
+              span.sr-only (current)
+
+        form.form-inline.my-2.my-lg-0#searchForm
+          input.form-control.mr-sm-2(type="search", name="search", size="50", placeholder="Search for Account, Tx Hash or Data", aria-label="Search", required, autofocus)
+          button.btn.btn-outline-success.my-2.my-sm-0(type="submit") Search
+
+    main.container(role="main")
+      block contents
+
+
+    script(src="//cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js", integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49", crossorigin="anonymous")
+    script(src="//stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js", integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T", crossorigin="anonymous")
+    script.
+      // search form
+      $('#searchForm').submit(function(evt) {
+        evt.preventDefault();
+        var search = evt.target.search.value;
+        //- console.log(search, ", ", search.length);
+
+        //- search = search.split('0x').join('');
+        //- var regexpTx = /[0-9a-zA-Z]{64}?/;
+        //- //var regexpAddr =  /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}/; // TODO ADDR REGEX or use isAddress(hexString) API ?
+        //- var regexpAddr = /^(0x)?[0-9a-f]{40}$/; //New ETH Regular Expression for Addresses
+        //- var regexpBlock = /[0-9]{1,7}?/;
+        //- var result =regexpTx.test(search);
+
+        if( search.length === 66 ) { //tx hash
+          location.href = '/tx/' + search;
+        } else if( search.length === 42 && web3.isAddress(search) ) {
+          location.href = '/address/' + search;
+        } else if( search <= blockNumber ) {
+          location.href = '/block/' + search;
+        } else {
+          console.log('what?');
+        }      
+        
+      });

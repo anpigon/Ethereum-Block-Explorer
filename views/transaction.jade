@@ -1,13 +1,138 @@
 extends layout/default_layout
 
-block body
+block contents
   h1=title
-    span.sub #{hash}
-    
-  div#txInfo
+    span.text-muted.ml-2.sub #{hash}
+
+  //- hr.my-4
+  div#app(v-cloak)
+    div.text-right
+      button.btn.btn-primary.btn-sm 
+        span(v-if="confirmations===null")
+          i.fas.fa-spinner.fa-pulse
+          span.ml-1 Confirmations
+        span {{ confirmations }}
+
+    //- ========================
+    //- Transaction
+    //- ========================
+    table.table.table-striped.mt-2.w-100
+      tr
+        th.w-25 TxHash 
+        td {{ tx.hash }}
+      tr
+        th Nonce 
+        td {{ tx.nonce }}
+      tr
+        th STxReceipt Status 
+        td {{ (tx.transactionIndex===undefined?'Pending':'Success') }}
+      tr
+        th Block Height 
+        td 
+          span(v-if="tx.blockNumber===undefined") pending
+          a(v-if="tx.blockNumber!==undefined", v-bind:href="'/block/' + tx.blockNumber") {{ tx.blockNumber }}
+      tr
+        th Block Hash 
+        td {{ (tx.blockHash || 'pending') }}
+      tr
+        th Transaction Index
+        td {{ (tx.transactionIndex===undefined?'pending':tx.transactionIndex) }}
+      //- tr
+        th TimeStamp 
+        td {{ tx.timestamp }}
+      tr
+        th From 
+        td
+          a(v-bind:href="'/address/' + tx.from") {{ tx.from }}
+      tr
+        th To 
+        td 
+          span(v-if="tx.to === '0x0'") {{ tx.to }}
+          a(v-if="tx.to !== '0x0'", v-bind:href="'/address/' + tx.to") {{ tx.to }}
+      tr
+        th Value
+        td {{ tx.value }} {{ tx.value_eth }}
+      tr
+        th Gas Limit 
+        td {{ tx.gas }}
+      tr
+        th Gas Price 
+        td {{ tx.gasPrice }} {{ tx.gasPrice_gwei }}
+      tr
+        th Transaction Price 
+        td {{ tx.transactionPrice }}
+      tr
+        th Input Data 
+        td
+          textarea(disabled, readonly) {{ tx.input }}
+
+    //- ========================
+    //- Transaction Receipt
+    //- ========================
+    h2 Receipt
+    table.table.table-striped.w-100
+      tr
+        th.w-25 contractAddress 
+        td {{ txReceipt.contractAddress }}
+      tr
+        th cumulativeGasUsed 
+        td {{ txReceipt.cumulativeGasUsed }}
+      tr
+        th gasUsed 
+        td {{ txReceipt.gasUsed }}
+      tr
+        th status 
+        td {{ txReceipt.status }}
+      tr
+        th logsBloom 
+        td 
+          textarea(disabled readonly) {{ txReceipt.logsBloom }}
+
+    //- ========================
+    //- Transaction Receipt Logs
+    //- ========================
+    h2 Logs
+    table.table.table-striped.w-100
+      tr
+        th  logIndex
+        //- th address 
+          th blockNumber
+          th blockHash
+        th data
+        th removed
+        th topics
+        //- th transactionHash 
+          th transactionIndex
+       tr(v-for="log in txReceipt.logs")
+        td {{ log.logIndex }}
+        td {{ log.data }}
+        td {{ log.removed }}
+        td {{ log.topics.join('<br>') }}
   
   script.
     var hash = '#{hash}';
+    var app = new Vue({
+      el: '#app',
+      data: {
+        isShow: false,
+        hash: '#{hash}',
+        confirmations: null,
+        tx: {},
+        txReceipt: {}
+      },
+      created: function() {
+        getTransactionInfo.bind(this)(this.hash);
+      }
+    });
+
+    function getBlockNumber() {
+      return new Promise((res, rej) => {
+        web3.eth.getBlockNumber((error, result) => {
+          if(error) rej(error);
+          else res(result);
+        });
+      });
+    }
 
     function getTransaction(hash) {
       return new Promise((res, rej) => {
@@ -29,14 +154,25 @@ block body
     }
 
     async function getTransactionInfo(hash) {
+      var self = this || app;
+      var hash = hash || self.hash;
 
       var tx = await getTransaction(hash);
-      console.log(tx);
+      //-  console.log(tx);
+      tx.transactionPrice = web3.fromWei(tx.gas * tx.gasPrice, 'ether').toString(10) + ' ETH';
+
+      if(tx.value > 0) tx.value_eth = ' (' +  web3.fromWei(self.tx.value, 'ether').toString(10) + ' ETH)';
+      tx.value = tx.value.toString(10);
+
+      if(tx.gasPrice > 0) tx.gasPrice_gwei = ' (' +  web3.fromWei(self.tx.value, 'Gwei').toString(10) + ' Gwei)';
+      tx.gasPrice = tx.gasPrice.toString(10);
+      self.tx = tx;
+      //- console.log(JSON.stringify(self.tx, '' , 2));
 
       //var txprice = (tx.gas * tx.gasPrice)/1000000000000000000 + " ETH";
-
-      var html = '<table>'
-        + '<tr><th>TxHash:</th><td>' + tx.hash + '</td></tr>'
+      /*
+      var html = '<table class="table table-striped">'
+        + '<tr><th class="w-25">TxHash:</th><td>' + tx.hash + '</td></tr>'
         + '<tr><th title="이전에 보낸사람이 수행한 트랜잭션 갯수">Nonce:</th><td>' + tx.nonce + '</td></tr>'
         + '<tr><th>STxReceipt Status:</th><td>' + (tx.transactionIndex===undefined?'Pending':'Success') + '</td></tr>'
         + '<tr><th>Block Height:</th><td>' + (tx.blockNumber===undefined?'pending':'<a href="/block/' + tx.blockNumber + '">' + tx.blockNumber + '</a>') + '</td></tr>'
@@ -45,58 +181,25 @@ block body
         //+ '<tr><th>TimeStamp:</th><td>' + tx.blockHash + '</td></tr>'
         + '<tr><th>From:</th><td><a href="/address/' + tx.from + '">' + tx.from + '</a></td></tr>'
         + '<tr><th>To:</th><td>' + (tx.to==='0x0'?tx.to:'<a href="/address/' + tx.to + '">' + tx.to + '</a>') + '</td></tr>'
-        + '<tr><th>Value:</th><td>' + tx.value.toString(10) +  ' ' +  web3.fromWei(tx.value, 'ether').toString(10) + ' ETH)</td></tr>'
+        + '<tr><th>Value:</th><td>' + tx.value.toString(10) +  ' (' +  web3.fromWei(tx.value, 'ether').toString(10) + ' ETH)</td></tr>'
         + '<tr><th>Gas Limit:</th><td>' + tx.gas.toString(10) + '</td></tr>'
         + '<tr><th>Gas Price:</th><td>' + tx.gasPrice.toString(10) +  ' (' +  web3.fromWei(tx.gasPrice, 'Gwei').toString(10) + ' Gwei)</td></tr>'
         + '<tr><th>Transaction Price:</th><td>' + web3.fromWei(tx.gas * tx.gasPrice, 'ether').toString(10) + ' ETH</td></tr>'
         + '<tr><th>Input Data:</th><td><textarea disabled readonly>' + tx.input + '</textarea></td></tr>'
-        + '</table>'; // 
+        + '</table>'; */
+      //- $("#txInfo").html(html);
 
-      var txReceipt = await getTransactionReceipt(hash);
-      if( !!txReceipt ) {
-        console.log('txReceipt: ', txReceipt);
-         html += '<h2>Transaction Receipt</h2><table>'
-        //-  + '<tr><th>blockHash:</th><td>' + txReceipt.blockHash + '</td></tr>'
-        //-  + '<tr><th>blockNumber:</th><td>' + txReceipt.blockNumber + '</td></tr>'
-         + '<tr><th>contractAddress:</th><td>' + txReceipt.contractAddress + '</td></tr>'
-        //-  + '<tr><th>from:</th><td>' + txReceipt.from + '</td></tr>'
-        //-  + '<tr><th>to:</th><td>' + txReceipt.to + '</td></tr>'
-         + '<tr><th>cumulativeGasUsed:</th><td>' + txReceipt.cumulativeGasUsed + '</td></tr>'
-         + '<tr><th>gasUsed:</th><td>' + txReceipt.gasUsed + '</td></tr>'
-         + '<tr><th>status:</th><td>' + txReceipt.status + '</td></tr>'
-         + '<tr><th>logsBloom:</th><td><textarea disabled readonly>' + txReceipt.logsBloom + '</textarea></td></tr>'
-        //-  + '<tr><th>logs:</th><td>' + txReceipt.logs + '</td></tr>'
-        //-  + '<tr><th>transactionHash:</th><td>' + txReceipt.transactionHash + '</td></tr>'
-        //-  + '<tr><th>transactionIndex:</th><td>' + txReceipt.transactionIndex + '</td></tr>'
-          + '</table>';
+      self.txReceipt = await getTransactionReceipt(hash);
 
-        var logs = ['<h2>Logs</h2>','<table>'];
-        var header = '<tr><th>logIndex</th><!--th>address</th><th>blockNumber</th><th>blockHash</th--><th>data</th><th>removed</th><th>topics</th><!--th>transactionHash</th><th>transactionIndex</th--></tr>';
-        logs.push(header);
-        txReceipt.logs.forEach(function(e, i) {
-          console.log(e);
-          var temp = '<tr>'
-            +'<td>'+e.logIndex+'</td>'
-            //- +'<td>'+e.address+'</td>'
-            //- +'<td>'+e.blockNumber.toString(10)+'</td>'
-            //- +'<td>'+e.blockHash+'</td>'
-            +'<td>'+e.data+'</td>'
-            +'<td>'+e.removed+'</td>'
-            +'<td>'+e.topics.join('<br>')+'</td>'
-            //- +'<td>'+e.transactionHash+'</td>'
-            //- +'<td>'+e.transactionIndex+'</td>'
-            + '</tr>';
-          logs.push(temp);
-        });
-        logs.push('</table>')
-        html += logs.join('');
+      var blockNumber = self.tx.blockNumber;
+      var confirm;
+      if( blockNumber ) {
+        var latestBlockNumber = await getBlockNumber();
+        if( blockNumber !== 0 && blockNumber !== latestBlockNumber ) 
+          confirm = (latestBlockNumber - blockNumber) + " Confirmations";
       }
-
-      $("#txInfo").html(html);
+      this.confirmations = confirm || 'Unconfirmed';
     }
-
-    getTransactionInfo(hash);
-
     
     
     

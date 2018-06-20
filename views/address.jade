@@ -1,13 +1,54 @@
 extends layout/default_layout
 
-block body
+block contents
   h1=title
-    span.sub #{address}
-    
-  div#addressInfo
+    span.text-muted.ml-2.sub #{address}
+
+  div#app(v-cloak)
+    table.table.table-striped.table-bordered._table-sm.w-100
+      thead
+        tr
+          th.w-25 Balance
+          td
+            i.fas.fa-lg.fa-spinner.fa-pulse(v-if="balance===null") 
+            {{ balance }} {{ balance_eth }}
+        tr
+          th Balance(USD)
+          td 
+            i.fas.fa-lg.fa-spinner.fa-pulse(v-if="balance_usd===null") 
+            {{ balance_usd }}
+        tr
+          th Storage
+          td 
+            i.fas.fa-lg.fa-spinner.fa-pulse(v-if="storage===null") 
+            {{ storage }}
+        tr
+          th Transaction Count
+          td 
+            i.fas.fa-lg.fa-spinner.fa-pulse(v-if="transactionCount===null") 
+            {{ transactionCount }}
+        tr(v-if="code !== '0x0'", style="display:none")
+          th Code
+          td
+            textarea(disabled, readonly, rows="25") {{ code }}
   
   script.
-    var address = '#{address}';
+
+    var app = new Vue({
+      el: '#app',
+      data: { 
+        address: '#{address}',
+        balance: null,
+        balance_eth: null,
+        balance_usd: null,
+        storage: null,
+        code: null,
+        transactionCount: null
+      },
+      created: function() {
+        getAddressInfo.bind(this)();
+      }
+    });
 
     function getBalance(address) {
       return new Promise((res, rej) => {
@@ -51,33 +92,26 @@ block body
         $.getJSON("https://api.coinmarketcap.com/v1/ticker/ethereum/", function(json) {
           var price = Number(json[0].price_usd);
           var ethusd = price.toFixed(2);
-          var balanceusd = "$" + (ethusd * balance);
+          var balanceusd = "$ " + (ethusd * balance);
           res(balanceusd);
         });
       });
     }
 
     async function getAddressInfo(address) {
+      var self = app || this;
+      address = address || self.address;
 
-      var balance = await getBalance(address);
-      var storage = await getStorageAt(address);
-      var code = await getCode(address);
-      var transactionCount = await getTransactionCount(address);
-      var balanceusd = await getETHUSD(web3.fromWei(balance, 'ether'));
-      //- console.log('code: ', code);
+      self.balance = await getBalance(address);
+      self.balance_eth = '(' + web3.fromWei(app.balance, 'ether').toString(10) + ' ETH)';
 
-      var html = '<table>'
-        + '<tr><th>Balance:</th><td>' + balance.toString(10) +  ' Wei (' +  web3.fromWei(balance, 'ether').toString(10) + ' Ether)</td></tr>'
-        + '<tr><th>Balance(USD):</th><td>' + balanceusd + '</td></tr>'
-        + '<tr><th>Storage:</th><td>' + storage + '</td></tr>'
-        + '<tr><th>Transaction Count:</th><td>' + transactionCount + '</td></tr>'
-        + (code==='0x'?'':'<tr><th>Code:</th><td><textarea disabled readonly rows="25">' + code + '</textarea></td></tr>')
-        + '</table>';
-      $("#addressInfo").html(html);
-      //- console.log('result: ', balance, storage, code);
+      self.storage = await getStorageAt(address);
+      self.code = await getCode(address);
+
+      self.transactionCount = await getTransactionCount(address);
+
+      self.balance_usd = await getETHUSD(web3.fromWei(app.balance, 'ether'));
     }
-
-    getAddressInfo(address);
 
     
     
