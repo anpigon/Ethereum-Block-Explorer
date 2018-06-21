@@ -224,7 +224,7 @@ block contents
       //- console.log(self.blocks);
 
       // getTransactionFromBlock(hashStringOrNumber, indexNumber [, callback])
-      var transactions = app.blocks.map(e=>e.transactions).join(',').split(",");
+      var transactions = app.blocks.map(e=>e?e.transactions:null).join(',').split(",");
       self.txs = await getRecentTxs(transactions);
 
     }

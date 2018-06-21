@@ -1,0 +1,144 @@
+extends layout/default_layout
+
+block contents
+  h1= title
+
+  div#app
+    div.row
+      div.col-md-6.col-lg-5.col-lg-4
+        div.input-group.input-group-sm.mb-3
+          div.input-group-prepend
+            span.input-group-text Address
+          input.form-control(type="text", v-model="address")
+          div.input-group-append
+            button.btn.btn-outline-secondary(type="button", v-on:click="onAdd") Add
+
+    div.card.float-left.mr-2.mt-2(style="width:30rem", v-for="(watch, index) in watchs")
+      div.card-body
+        h6.card-title.text-monospace 
+          a(v-bind:href="'/address/' + watch.address") {{ watch.address }} 
+            //- i.fas.fa-chevron-right
+        h6.card-subtitle.mb-2.text-muted 
+          i.fas.fa-spinner.fa-pulse(v-if="watch.balance === undefined")
+          span(v-if="watch.balance !== undefined") {{ watch.balance }}
+        //- p.card-text Some quick example text to build on the card title and make up the bulk of the card's content.
+        button.btn.btn-sm.btn-outline-danger(type="button", v-on:click="onDel(index)") 삭제
+
+    div.clearfix
+
+  script.
+
+    var app = new Vue({
+      el: '#app',
+      data: { 
+        address: '',
+        watchs: []
+      },
+      created: function() {
+        //init.bind(this)();
+        var watchs = window.localStorage.getItem("watchs");
+        if( watchs ) {
+          this.watchs = JSON.parse(watchs);
+        }
+        this.watchs.forEach(watch => getBalance(watch.address).then(r => watch.balance = web3.fromWei(r, 'ether') + ' ETH'));
+      },
+      methods: {
+        onDel: function(index) {
+          this.watchs.pop(index);
+          window.localStorage.setItem("watchs", JSON.stringify(this.watchs));
+        },
+        onAdd: function() {
+          if( this.address.length === 42 && web3.isAddress(this.address) ) {
+            if( this.watchs.find(w => w.address.toLowerCase() === this.address.toLowerCase()) ) {
+              console.log('aready exist')
+              return false;
+            }
+
+            var watch = {
+              address: this.address,
+              balance: undefined,
+              txs: []
+            };
+            this.watchs.push(watch);
+            window.localStorage.setItem("watchs", JSON.stringify(this.watchs));
+            this.address = "";
+
+            // 잔액 조회
+            getBalance(watch.address).then(r => watch.balance = web3.fromWei(r, 'ether') + ' ETH');
+          }
+        }
+      }
+    });
+
+    function getBalance(address) {
+      return new Promise((res, rej) => {
+        web3.eth.getBalance(address, (error, result) => {
+          if(error) rej(error);
+          else res(result.toString(10));
+        });
+      });
+    }
+
+    function getBlockNumber() {
+      return new Promise((res, rej) => {
+        web3.eth.getBlockNumber((error, result) => {
+          if(error) rej(error);
+          else res(result);
+        });
+      });
+    }
+
+    function getBlock(hashStringOrBlockNumber) {
+      return new Promise((res, rej) => {
+        web3.eth.getBlock(hashStringOrBlockNumber, (error, result) => {
+          if(error) rej(error);
+          else res(result);
+        });
+      });
+    }
+
+    function getTransaction(hash) {
+      return new Promise((res, rej) => {
+        web3.eth.getTransaction(hash, (error, result) => {
+          if(error) rej(error);
+          else res(result);
+        });
+      });
+    }
+
+    web3.eth.filter("latest", function(error, result){
+      if (!error) {
+        console.log('block created!', result);
+        app.$data.watchs.forEach(w => getBalance(w.address).then(r => w.balance = web3.fromWei(r, 'ether') + ' ETH'));
+        //filter(result);
+      }
+    });
+
+    async function filter(blockHash) {
+      var block = await getBlock(blockHash);
+      var refreshBalanceAddresses = [];
+      block.transactions.forEach(txHash => {
+        getTransaction(txHash).then(tx => {
+          var blockNumber = tx.blockNumber;
+          var gas = tx.gas;
+          var gasPrice = tx.gasPrice;
+          var hash = tx.hash;
+          var value = tx.value;
+          var to = tx.to || '';
+          var from = tx.from || '';
+          app.watchs.forEach(w => {
+            var address = w.address.toLowerCase();
+            if( address === to.toLowerCase() || address === from.toLowerCase() ) {
+              w.txs.push(tx);
+            }
+          });
+        });
+      });
+    }
+
+    
+    
+    
+
+    
+    
