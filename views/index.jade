@@ -170,9 +170,9 @@ block contents
       });
     }
 
-    function getBlock(hashStringOrBlockNumber) {
+    function getBlock(hashStringOrBlockNumber, returnTransactionObjects) {
       return new Promise((res, rej) => {
-        web3.eth.getBlock(hashStringOrBlockNumber, (error, result) => {
+        web3.eth.getBlock(hashStringOrBlockNumber, returnTransactionObjects, (error, result) => {
           if(error) rej(error);
           else res(result);
         });
@@ -188,10 +188,11 @@ block contents
       });
     }
 
-    async function getRecentBlocks(currentBlockNumber, maxCnt) {
+    async function getRecentBlocks(currentBlockNumber, maxCnt, returnTransactionObjects) {
       var blocks = [];
       for (var i=0, s=(maxCnt || 10); i < s && currentBlockNumber - i >= 0; i++) {
-        blocks.push(await getBlock(currentBlockNumber - i));
+        const block = await getBlock(currentBlockNumber - i, returnTransactionObjects)
+        blocks.push(block);
       }
       return blocks;
     }
@@ -220,26 +221,40 @@ block contents
       var blockNumber = await getBlockNumber();
       self.blockNumber = blockNumber;
 
-      self.blocks = await getRecentBlocks(blockNumber);
+      self.blocks = await getRecentBlocks(blockNumber, 10, true);
       //- console.log(self.blocks);
 
       // getTransactionFromBlock(hashStringOrNumber, indexNumber [, callback])
-      var transactions = app.blocks.map(e=>e?e.transactions:null).join(',').split(",");
-      self.txs = await getRecentTxs(transactions);
+      //- var transactions = app.blocks.map(e=>e?e.transactions:null).join(',').split(",");
+      //- self.txs = await getRecentTxs(transactions);
 
+      var transactions = [];
+      self.blocks.forEach(function(block) {
+        //- console.log(e.transactions);
+        if( block && block.transactions && block.transactions.length )
+          transactions = transactions.concat(block.transactions);
+      });
+      self.txs = transactions;
+
+      web3.eth.filter("latest", function(error, result){
+        if (!error) {
+          //- console.log(result);
+          getBlock(result, true).then(block => {
+            //- console.log(block);
+            app.blocks.unshift(block);
+            app.blocks.pop();
+            //- getRecentTxs(block.transactions).then(r => app.$data.txs.unshift(r) );
+
+            if( block.transactions.length ) {
+              app.txs = block.transactions.concat(app.txs);
+            }
+          });
+        }
+      });
     }
 
-    web3.eth.filter("latest", function(error, result){
-      if (!error) {
-        //- console.log(result);
-        getBlock(result).then(block => {
-          //- console.log(block);
-          app.$data.blocks.unshift(block);
-          app.$data.blocks.pop();
-          //- getRecentTxs(block.transactions).then(r => app.$data.txs.unshift(r) );
-        });
-      }
-    });
+   
+    
 
     
     
