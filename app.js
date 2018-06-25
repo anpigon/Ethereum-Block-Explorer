@@ -46,6 +46,12 @@ app.get('/address/:address/', function (req, res, next) {
   });
 });
 
+app.get('/watch', function (req, res, next) {
+  res.render('watch', {
+    title: 'Watch'
+  });
+});
+
 app.post('/decoder', function (req, res, next) {
   // req.body.data
   res.json({});

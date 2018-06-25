@@ -20,22 +20,20 @@ html(lang="ko")
       } else {
         web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
       }
-
-      //- web3.eth.getGasPrice(function(error, result){
-      //-   console.log('GasPrice: ', result.toString());
-      //- });
       
   body
     nav.navbar.navbar-expand-md.navbar-dark.bg-dark.fixed-top
       a.navbar-brand.text-uppercase(href="/") Ether Expolorer
-      button.navbar-toggler(type="button", data-toggle="collapse", data-target="#navbarsExampleDefault", aria-controls="navbarsExampleDefault", aria-expanded="false", aria-label="Toggle navigation") 
+      button.navbar-toggler(type="button", data-toggle="collapse", data-target="#navbarsDefault", aria-controls="navbarsDefault", aria-expanded="false", aria-label="Toggle navigation") 
         span.navbar-toggler-icon
 
-      div.collapse.navbar-collapse#navbarsExampleDefault
+      div.collapse.navbar-collapse#navbarsDefault
         ul.navbar-nav.mr-auto
-          li.nav-item.active
+          li.nav-item
             a.nav-link(href="/") Home
               span.sr-only (current)
+          li.nav-item
+            a.nav-link(href="/watch") Watch
 
         form.form-inline.my-2.my-lg-0#searchForm
           input.form-control.mr-sm-2(type="search", name="search", size="50", placeholder="Search for Account, Tx Hash or Data", aria-label="Search", required, autofocus)
@@ -48,6 +46,12 @@ html(lang="ko")
     script(src="//cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js", integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49", crossorigin="anonymous")
     script(src="//stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js", integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T", crossorigin="anonymous")
     script.
+      $("#navbarsDefault a").each(function(i, e){
+        if( location.href == e.href ) {
+          e.closest("li.nav-item").classList.add("active");
+        }
+      });
+
       // search form
       $('#searchForm').submit(function(evt) {
         evt.preventDefault();
