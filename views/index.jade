@@ -199,7 +199,9 @@ block contents
     async function getRecentTxs(txhashs, maxCnt) {
       var txs = [];
       for (var i=0, l=txhashs.length, s=(maxCnt || 20)-1; i < s && i < l; i++) {
-        txs.push(await getTransaction(txhashs[i]));
+        var hash = txhashs[i];
+        if( hash && hash.length )
+          txs.push(await getTransaction(hash));
       }
       return txs;
     }

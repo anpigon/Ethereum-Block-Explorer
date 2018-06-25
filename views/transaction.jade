@@ -7,6 +7,8 @@ block contents
   //- hr.my-4
   div#app(v-cloak)
     div.text-right
+      button.btn.btn-danger.btn-sm.mr-2(v-if="isContractCreation") Contract Creation
+
       button.btn.btn-primary.btn-sm 
         span(v-if="confirmations===null")
           i.fas.fa-spinner.fa-pulse
@@ -72,19 +74,19 @@ block contents
     h2 Receipt
     table.table.table-striped.w-100
       tr
-        th.w-25 contractAddress 
+        th.w-25 Contract Address 
         td {{ txReceipt.contractAddress }}
       tr
-        th cumulativeGasUsed 
+        th Cumulative Gas Used 
         td {{ txReceipt.cumulativeGasUsed }}
       tr
-        th gasUsed 
+        th Gas Used 
         td {{ txReceipt.gasUsed }}
       tr
-        th status 
+        th Status 
         td {{ txReceipt.status }}
       tr
-        th logsBloom 
+        th Logs Bloom 
         td 
           textarea(disabled readonly) {{ txReceipt.logsBloom }}
 
@@ -118,7 +120,8 @@ block contents
         hash: '#{hash}',
         confirmations: null,
         tx: {},
-        txReceipt: {}
+        txReceipt: {},
+        isContractCreation: false
       },
       created: function() {
         getTransactionInfo.bind(this)(this.hash);
@@ -153,41 +156,32 @@ block contents
       });
     }
 
+  function getCode(contractAddress) {
+      return new Promise((res, rej) => {
+        web3.eth.getCode(contractAddress, (error, result) => {
+          if(error) rej(error);
+          else res(result);
+        });
+      });
+    }
+
     async function getTransactionInfo(hash) {
       var self = this || app;
       var hash = hash || self.hash;
 
       var tx = await getTransaction(hash);
+
+      self.isContractCreation = (tx.input.indexOf('0x6060604052') === 0);
+
       //-  console.log(tx);
       tx.transactionPrice = web3.fromWei(tx.gas * tx.gasPrice, 'ether').toString(10) + ' ETH';
 
-      if(tx.value > 0) tx.value_eth = ' (' +  web3.fromWei(self.tx.value, 'ether').toString(10) + ' ETH)';
+      if(tx.value > 0) tx.value_eth = ' (' +  web3.fromWei(tx.value, 'ether').toString(10) + ' ETH)';
       tx.value = tx.value.toString(10);
 
-      if(tx.gasPrice > 0) tx.gasPrice_gwei = ' (' +  web3.fromWei(self.tx.value, 'Gwei').toString(10) + ' Gwei)';
+      if(tx.gasPrice > 0) tx.gasPrice_gwei = ' (' +  web3.fromWei(tx.gasPrice, 'Gwei').toString(10) + ' Gwei)';
       tx.gasPrice = tx.gasPrice.toString(10);
       self.tx = tx;
-      //- console.log(JSON.stringify(self.tx, '' , 2));
-
-      //var txprice = (tx.gas * tx.gasPrice)/1000000000000000000 + " ETH";
-      /*
-      var html = '<table class="table table-striped">'
-        + '<tr><th class="w-25">TxHash:</th><td>' + tx.hash + '</td></tr>'
-        + '<tr><th title="이전에 보낸사람이 수행한 트랜잭션 갯수">Nonce:</th><td>' + tx.nonce + '</td></tr>'
-        + '<tr><th>STxReceipt Status:</th><td>' + (tx.transactionIndex===undefined?'Pending':'Success') + '</td></tr>'
-        + '<tr><th>Block Height:</th><td>' + (tx.blockNumber===undefined?'pending':'<a href="/block/' + tx.blockNumber + '">' + tx.blockNumber + '</a>') + '</td></tr>'
-        + '<tr><th>Block Hash:</th><td>' + (tx.blockHash || 'pending') + '</td></tr>'
-        + '<tr><th title="블록에 있는 트랜잭션 인덱스. null이면 pending 상태">Transaction Index:</th><td>' + tx.transactionIndex + '</td></tr>'
-        //+ '<tr><th>TimeStamp:</th><td>' + tx.blockHash + '</td></tr>'
-        + '<tr><th>From:</th><td><a href="/address/' + tx.from + '">' + tx.from + '</a></td></tr>'
-        + '<tr><th>To:</th><td>' + (tx.to==='0x0'?tx.to:'<a href="/address/' + tx.to + '">' + tx.to + '</a>') + '</td></tr>'
-        + '<tr><th>Value:</th><td>' + tx.value.toString(10) +  ' (' +  web3.fromWei(tx.value, 'ether').toString(10) + ' ETH)</td></tr>'
-        + '<tr><th>Gas Limit:</th><td>' + tx.gas.toString(10) + '</td></tr>'
-        + '<tr><th>Gas Price:</th><td>' + tx.gasPrice.toString(10) +  ' (' +  web3.fromWei(tx.gasPrice, 'Gwei').toString(10) + ' Gwei)</td></tr>'
-        + '<tr><th>Transaction Price:</th><td>' + web3.fromWei(tx.gas * tx.gasPrice, 'ether').toString(10) + ' ETH</td></tr>'
-        + '<tr><th>Input Data:</th><td><textarea disabled readonly>' + tx.input + '</textarea></td></tr>'
-        + '</table>'; */
-      //- $("#txInfo").html(html);
 
       self.txReceipt = await getTransactionReceipt(hash);
 
