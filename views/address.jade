@@ -27,7 +27,7 @@ block contents
           td 
             i.fas.fa-lg.fa-spinner.fa-pulse(v-if="transactionCount===null") 
             {{ transactionCount }}
-        tr(v-if="code !== '0x0'", style="display:none")
+        tr(v-if="isContract")
           th Code
           td
             textarea(disabled, readonly, rows="25") {{ code }}
@@ -43,7 +43,12 @@ block contents
         balance_usd: null,
         storage: null,
         code: null,
-        transactionCount: null
+        transactionCount: null,
+      },
+      computed: {
+        isContract: function() {
+          return (this.code && this.code.length > 3);
+        }
       },
       created: function() {
         getAddressInfo.bind(this)();
@@ -107,6 +112,8 @@ block contents
 
       self.storage = await getStorageAt(address);
       self.code = await getCode(address);
+      //- if( self.code.length > 3) self.isContract
+      //- console.log('code: ', JSON.stringify(self.code, '', 2));
 
       self.transactionCount = await getTransactionCount(address);
 
