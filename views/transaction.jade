@@ -156,7 +156,7 @@ block contents
       });
     }
 
-  function getCode(contractAddress) {
+    function getCode(contractAddress) {
       return new Promise((res, rej) => {
         web3.eth.getCode(contractAddress, (error, result) => {
           if(error) rej(error);
@@ -166,33 +166,38 @@ block contents
     }
 
     async function getTransactionInfo(hash) {
-      var self = this || app;
-      var hash = hash || self.hash;
+      try {
+        var self = this || app;
+        var hash = hash || self.hash;
 
-      var tx = await getTransaction(hash);
+        var tx = await getTransaction(hash);
 
-      self.isContractCreation = (tx.input.indexOf('0x6060604052') === 0);
+        self.isContractCreation = (tx.input.indexOf('0x6060604052') === 0);
 
-      //-  console.log(tx);
-      tx.transactionPrice = web3.fromWei(tx.gas * tx.gasPrice, 'ether').toString(10) + ' ETH';
+        //-  console.log(tx);
+        tx.transactionPrice = web3.fromWei(tx.gas * tx.gasPrice, 'ether').toString(10) + ' ETH';
 
-      if(tx.value > 0) tx.value_eth = ' (' +  web3.fromWei(tx.value, 'ether').toString(10) + ' ETH)';
-      tx.value = tx.value.toString(10);
+        if(tx.value > 0) tx.value_eth = ' (' +  web3.fromWei(tx.value, 'ether').toString(10) + ' ETH)';
+        tx.value = tx.value.toString(10);
 
-      if(tx.gasPrice > 0) tx.gasPrice_gwei = ' (' +  web3.fromWei(tx.gasPrice, 'Gwei').toString(10) + ' Gwei)';
-      tx.gasPrice = tx.gasPrice.toString(10);
-      self.tx = tx;
+        if(tx.gasPrice > 0) tx.gasPrice_gwei = ' (' +  web3.fromWei(tx.gasPrice, 'Gwei').toString(10) + ' Gwei)';
+        tx.gasPrice = tx.gasPrice.toString(10);
+        self.tx = tx;
 
-      self.txReceipt = await getTransactionReceipt(hash);
+        self.txReceipt = await getTransactionReceipt(hash);
 
-      var blockNumber = self.tx.blockNumber;
-      var confirm;
-      if( blockNumber ) {
-        var latestBlockNumber = await getBlockNumber();
-        if( blockNumber !== 0 && blockNumber !== latestBlockNumber ) 
-          confirm = (latestBlockNumber - blockNumber) + " Confirmations";
+        var blockNumber = self.tx.blockNumber;
+        var confirm;
+        if( blockNumber ) {
+          var latestBlockNumber = await getBlockNumber();
+          if( blockNumber !== 0 && blockNumber !== latestBlockNumber ) 
+            confirm = (latestBlockNumber - blockNumber) + " Confirmations";
+        }
+        this.confirmations = confirm || 'Unconfirmed';
+      } catch(err) {
+        console.log(err);
+        alert(err);
       }
-      this.confirmations = confirm || 'Unconfirmed';
     }
     
     
